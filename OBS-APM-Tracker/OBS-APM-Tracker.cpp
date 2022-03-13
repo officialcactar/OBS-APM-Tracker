@@ -102,9 +102,9 @@ KeyPressWriter() {
 
 int
 CurrentEpochTime() {
-    FILETIME ft = {0};
+    FILETIME ft = { 0 };
     GetSystemTimeAsFileTime(&ft);
-    LARGE_INTEGER li = {0};
+    LARGE_INTEGER li = { 0 };
     li.LowPart = ft.dwLowDateTime;
     li.HighPart = ft.dwHighDateTime;
     return (int)(li.QuadPart / 10000000 - 11644473600LL);
