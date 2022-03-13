@@ -1,22 +1,25 @@
 #include <windows.h>
 #include <fstream>
 #include <vector>
+#include <iostream>
 #include <chrono>
 #include <thread>
+#include <atomic>
+#include <mutex>
 
 #define PATH "./APM.txt" // The path to the log file
 #define NAME "APM-Tracker"
 
-std::vector < int > vect;
+std::mutex mtx;
+std::vector < std::chrono::milliseconds > vect;
 std::ofstream APM_File;
-bool RacePrevention = true;
+std::atomic_bool RacePrevention = true;
 HHOOK KeyboardHook;
 HHOOK MouseHook;
 DWORD ThreadId;
 HANDLE ThreadHandle;
 void KeyPressWriter();
 void KeyPressRemover();
-int CurrentEpochTime();
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
 
@@ -43,13 +46,9 @@ LRESULT CALLBACK
 LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0) {
         if (wParam == WM_KEYDOWN) {
-            int time = CurrentEpochTime();
-            while (1) {
-                if (!RacePrevention) {
-                    vect.push_back(time);
-                    break;
-                }
-            }
+            std::chrono::milliseconds time = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+            std::lock_guard<std::mutex> lg(mtx);
+            vect.push_back(time);
         }
     }
     return CallNextHookEx(KeyboardHook, nCode, wParam, lParam);
@@ -59,13 +58,9 @@ LRESULT CALLBACK
 LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0) {
         if (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN) {
-            int time = CurrentEpochTime();
-            while (1) {
-                if (!RacePrevention) {
-                    vect.push_back(time);
-                    break;
-                }
-            }
+            std::chrono::milliseconds time = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+            std::lock_guard<std::mutex> lg(mtx);
+            vect.push_back(time);
         }
     }
     return CallNextHookEx(MouseHook, nCode, wParam, lParam);
@@ -74,11 +69,10 @@ LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 void
 KeyPressRemover() {
     while (1) {
-        RacePrevention = true;
-        std::erase_if(vect, [](int x) {
-            return x < CurrentEpochTime() - 5;
+        std::lock_guard<std::mutex> lg(mtx);
+        std::erase_if(vect, [](std::chrono::milliseconds x) {
+            return x < duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()); -5000;
             });
-        RacePrevention = false;
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }
 }
@@ -90,7 +84,7 @@ KeyPressWriter() {
         if (!APM_File) {
             if (MessageBoxA(NULL,
                 "There was an error opening the APM.txt file.\n"
-                "Please check file permissions then report on github if not resolved.",
+                "Please check file permissions.",
                 NAME, MB_OK | MB_ICONWARNING))
                 exit(1);
         }
@@ -98,14 +92,4 @@ KeyPressWriter() {
         APM_File.close();
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-}
-
-int
-CurrentEpochTime() {
-    FILETIME ft = { 0 };
-    GetSystemTimeAsFileTime(&ft);
-    LARGE_INTEGER li = { 0 };
-    li.LowPart = ft.dwLowDateTime;
-    li.HighPart = ft.dwHighDateTime;
-    return (int)(li.QuadPart / 10000000 - 11644473600LL);
 }
