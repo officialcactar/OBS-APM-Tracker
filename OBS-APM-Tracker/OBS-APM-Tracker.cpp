@@ -1,52 +1,31 @@
 #include <windows.h>
-
-#include <iostream>
-
 #include <fstream>
-
 #include <vector>
-
-#include <map>
-
-#include <iostream>
-
-#include <vector>
-
 #include <chrono>
-
 #include <thread>
 
 #define PATH "./APM.txt" // The path to the log file
 #define NAME "APM-Tracker"
-//using namespace std;
 
-std::ofstream file;
-
-bool Race_Prevention = true;
-
-HHOOK hookk;
-HHOOK hookm;
-MSG msg;
-
+std::vector < int > vect;
+std::ofstream APM_File;
+bool RacePrevention = true;
+HHOOK KeyboardHook;
+HHOOK MouseHook;
 DWORD ThreadId;
 HANDLE ThreadHandle;
-
-DWORD WINAPI writer(LPVOID lpdwThreadParam);
-DWORD WINAPI remover(LPVOID lpdwThreadParam);
-
-long long int CurrentEpochTime();
-
+void KeyPressWriter();
+void KeyPressRemover();
+int CurrentEpochTime();
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
-
-int KeyCount = 0;
-std::vector < long long int > vect;
 
 int main(void) {
     FreeConsole();
 
-    ThreadHandle = CreateThread(NULL, 0, remover, NULL, 0, &ThreadId);
-    ThreadHandle = CreateThread(NULL, 0, writer, NULL, 0, &ThreadId);
+    std::thread writer_thread(KeyPressWriter);
+    std::thread remover_thread(KeyPressRemover);
+
     HINSTANCE hInstance = GetModuleHandle(NULL);
     HHOOK KeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC)LowLevelKeyboardProc, hInstance, 0);
     HHOOK MouseHook = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC)LowLevelMouseProc, hInstance, 0);
@@ -64,75 +43,69 @@ LRESULT CALLBACK
 LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0) {
         if (wParam == WM_KEYDOWN) {
-            long long int time = CurrentEpochTime();
+            int time = CurrentEpochTime();
             while (1) {
-                if (!Race_Prevention) {
+                if (!RacePrevention) {
                     vect.push_back(time);
                     break;
                 }
             }
         }
     }
-    return CallNextHookEx(hookk, nCode, wParam, lParam);
+    return CallNextHookEx(KeyboardHook, nCode, wParam, lParam);
 }
 
 LRESULT CALLBACK
 LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0) {
         if (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN) {
-            long long int time = CurrentEpochTime();
+            int time = CurrentEpochTime();
             while (1) {
-                if (!Race_Prevention) {
+                if (!RacePrevention) {
                     vect.push_back(time);
                     break;
                 }
             }
         }
     }
-    return CallNextHookEx(hookm, nCode, wParam, lParam);
+    return CallNextHookEx(MouseHook, nCode, wParam, lParam);
 }
 
-DWORD WINAPI
-remover(LPVOID lpdwThreadParam) {
+void
+KeyPressRemover() {
     while (1) {
-        Race_Prevention = true;
+        RacePrevention = true;
         std::erase_if(vect, [](int x) {
             return x < CurrentEpochTime() - 5;
             });
-        Race_Prevention = false;
+        RacePrevention = false;
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }
-    return 1;
 }
 
-DWORD WINAPI
-writer(LPVOID lpdwThreadParam) {
+void
+KeyPressWriter() {
     while (1) {
-        file.open(PATH, std::ios::trunc);
-        if (!file) {
+        APM_File.open(PATH, std::ios::trunc);
+        if (!APM_File) {
             if (MessageBoxA(NULL,
                 "There was an error opening the APM.txt file.\n"
                 "Please check file permissions then report on github if not resolved.",
                 NAME, MB_OK | MB_ICONWARNING))
-                return 1;
+                exit(1);
         }
-        file << "APM: " << vect.size() * 12.0;
-        file.close();
+        APM_File << "APM: " << vect.size() * 12.0;
+        APM_File.close();
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    return 1;
 }
 
-long long int
+int
 CurrentEpochTime() {
-    FILETIME ft = {
-      0
-    };
+    FILETIME ft = {0};
     GetSystemTimeAsFileTime(&ft);
-    LARGE_INTEGER li = {
-      0
-    };
+    LARGE_INTEGER li = {0};
     li.LowPart = ft.dwLowDateTime;
     li.HighPart = ft.dwHighDateTime;
-    return (li.QuadPart / 10000000 - 11644473600LL);
+    return (int)(li.QuadPart / 10000000 - 11644473600LL);
 }
