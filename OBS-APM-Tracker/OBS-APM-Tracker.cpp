@@ -94,7 +94,7 @@ KeyPressWriter() {
     while (1) {
         APM_File.seekp(0);
         size_t APM = vect.size() * 12;
-        APM_File << "APM: " << APM << ((APM < 10) ? ' ' : '\0') << ((APM < 100) ? ' ' : '\0');
+        APM_File << "APM: " << APM <<  ((APM < 100) ? ((APM < 10) ? '  ' : ' ') : '\0');
         APM_File.flush();
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
