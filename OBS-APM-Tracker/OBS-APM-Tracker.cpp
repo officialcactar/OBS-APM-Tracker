@@ -83,17 +83,20 @@ KeyPressRemover() {
 
 void
 KeyPressWriter() {
-    while (1) {
-        APM_File.open(PATH, std::ios::trunc);
-        if (!APM_File) {
-            if (MessageBoxA(NULL,
-                "There was an error opening the APM.txt file.\n"
-                "Please check file permissions.",
-                NAME, MB_OK | MB_ICONWARNING))
-                exit(1);
-        }
-        APM_File << "APM: " << vect.size() * 12.0;
-        APM_File.close();
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+    APM_File.open(PATH, std::ios::trunc);
+    if (!APM_File) {
+        if (MessageBoxA(NULL,
+            "There was an error opening the APM.txt file.\n"
+            "Please check file permissions.",
+            NAME, MB_OK | MB_ICONWARNING))
+            exit(1);
     }
+    while (1) {
+        APM_File.seekp(0);
+        size_t APM = vect.size() * 12;
+        APM_File << "APM: " << APM << ((APM < 10) ? ' ' : '\0') << ((APM < 100) ? ' ' : '\0');
+        APM_File.flush();
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    APM_File.close();
 }
