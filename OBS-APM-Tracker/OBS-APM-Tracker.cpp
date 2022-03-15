@@ -40,8 +40,9 @@ LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 	if (nCode >= 0) {
 		if (wParam == WM_KEYDOWN) {
 			std::chrono::milliseconds time = duration_cast <std::chrono::milliseconds> (std::chrono::system_clock::now().time_since_epoch());
-			std::lock_guard<std::mutex> lock(mtx);
+			mtx.lock();
 			vect.push_back(time);
+			mtx.unlock();
 		}
 	}
 	return CallNextHookEx(KeyboardHook, nCode, wParam, lParam);
@@ -52,8 +53,9 @@ LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 	if (nCode >= 0) {
 		if (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN) {
 			std::chrono::milliseconds time = duration_cast <std::chrono::milliseconds> (std::chrono::system_clock::now().time_since_epoch());
-			std::lock_guard<std::mutex> lock(mtx);
+			mtx.lock();
 			vect.push_back(time);
+			mtx.unlock();
 		}
 	}
 	return CallNextHookEx(MouseHook, nCode, wParam, lParam);
@@ -61,11 +63,12 @@ LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
 void
 KeyPressRemover() {
-	std::lock_guard<std::mutex> lock(mtx);
+	mtx.lock();
 	std::erase_if(vect, [](std::chrono::milliseconds x) {
 		//Remove anything thats older than 5 seconds.
 		return x < duration_cast <std::chrono::milliseconds> (std::chrono::system_clock::now().time_since_epoch() - std::chrono::seconds(5));
 		});
+	mtx.unlock();
 }
 
 void
@@ -85,7 +88,7 @@ KeyPressWriter() {
 		size_t APM = vect.size() * 12;
 		APM_File << "APM: " << std::setw(4) << std::left << APM;
 		APM_File.flush();
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	}
 	APM_File.close();
 }
