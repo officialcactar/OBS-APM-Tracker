@@ -23,8 +23,8 @@ int main(void) {
 	FreeConsole();
 	std::thread writer_thread(KeyPressWriter);
 	HINSTANCE hInstance = GetModuleHandle(NULL);
-	HHOOK KeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC)LowLevelKeyboardProc, hInstance, 0);
-	HHOOK MouseHook = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC)LowLevelMouseProc, hInstance, 0);
+	KeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC)LowLevelKeyboardProc, hInstance, 0);
+	MouseHook = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC)LowLevelMouseProc, hInstance, 0);
 
 	if (MessageBoxA(NULL,
 		"APM-Tracker is now running!\n\n"
