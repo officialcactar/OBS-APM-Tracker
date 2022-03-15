@@ -52,7 +52,7 @@ LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 	if (nCode >= 0) {
 		if (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN) {
 			std::chrono::milliseconds time = duration_cast <std::chrono::milliseconds> (std::chrono::system_clock::now().time_since_epoch());
-			//std::lock_guard<std::mutex> lock(mtx);
+			std::lock_guard<std::mutex> lock(mtx);
 			vect.push_back(time);
 		}
 	}
