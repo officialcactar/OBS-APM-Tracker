@@ -22,6 +22,7 @@ LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
 int main(void) {
 	FreeConsole();
 	std::thread writer_thread(KeyPressWriter);
+	std::thread remover_thread(KeyPressRemover);
 	HINSTANCE hInstance = GetModuleHandle(NULL);
 	KeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC)LowLevelKeyboardProc, hInstance, 0);
 	MouseHook = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC)LowLevelMouseProc, hInstance, 0);
@@ -63,12 +64,16 @@ LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
 void
 KeyPressRemover() {
-	mtx.lock();
-	std::erase_if(vect, [](std::chrono::milliseconds x) {
-		//Remove anything thats older than 5 seconds.
-		return x < duration_cast <std::chrono::milliseconds> (std::chrono::system_clock::now().time_since_epoch() - std::chrono::seconds(5));
-		});
-	mtx.unlock();
+	while (1) {
+		mtx.lock();
+		std::erase_if(vect, [](std::chrono::milliseconds x) {
+			//Remove anything thats older than 5 seconds.
+			return x < duration_cast <std::chrono::milliseconds> (std::chrono::system_clock::now().time_since_epoch() - std::chrono::seconds(5));
+			});
+		mtx.unlock();
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+	
 }
 
 void
@@ -83,12 +88,13 @@ KeyPressWriter() {
 			exit(1);
 	}
 	while (1) {
-		KeyPressRemover();
 		APM_File.seekp(0);
+		mtx.lock();
 		size_t APM = vect.size() * 12;
+		mtx.unlock();
 		APM_File << "APM: " << std::setw(4) << std::left << APM;
 		APM_File.flush();
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
 	APM_File.close();
 }
