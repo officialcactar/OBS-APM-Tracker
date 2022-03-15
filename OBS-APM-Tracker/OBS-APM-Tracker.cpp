@@ -83,10 +83,12 @@ KeyPressWriter() {
     }
     while (1) {
         KeyPressRemover();
+
         APM_File.seekp(0);
         size_t APM = vect.size() * 12;
         APM_File << "APM: " << std::setw(4) << std::left << APM;
         APM_File.flush();
+
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     APM_File.close();
