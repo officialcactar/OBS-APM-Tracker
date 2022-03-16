@@ -17,7 +17,7 @@
 const char* PATH = "./APM.txt"; // The path to the log file
 const char* NAME = "APM-Tracker";
 
-bool* KeyStates = (bool*)calloc(100, sizeof(bool));
+bool* KeyStates = (bool*)calloc(0xFE, sizeof(bool));
 std::mutex KeyHistoryMutex;
 std::mutex KeyStateMutex;
 std::vector < std::chrono::milliseconds > vect;
