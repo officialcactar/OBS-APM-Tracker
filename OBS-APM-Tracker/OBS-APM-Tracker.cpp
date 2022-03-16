@@ -29,7 +29,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
 
 int main(void) {
-    //FreeConsole();
+    FreeConsole();
     std::thread writer_thread(KeyPressWriter);
     std::thread remover_thread(KeyPressRemover);
     HINSTANCE hInstance = GetModuleHandle(NULL);
