@@ -16,20 +16,7 @@
 
 #include <cstdlib>
 
-const char* PATH = "./APM.txt"; // The path to the log file
-const char* NAME = "APM-Tracker";
-
-bool* KeyStates = (bool*)calloc(0xFE, sizeof(bool));
-std::mutex KeyHistoryMutex;
-std::mutex KeyStateMutex;
-std::vector < std::chrono::milliseconds > vect;
-HHOOK KeyboardHook;
-HHOOK MouseHook;
-void exiting();
-void KeyPressWriter();
-void KeyPressRemover();
-LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
-LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
+#include "resource.h"
 
 int main(void) {
     std::atexit(exiting);
@@ -45,10 +32,8 @@ int main(void) {
         "APM-Tracker is now running!\n\n"
         "Please create a TEXT source in OBS and link the APM.txt file.\n\n"
         "Press the 'OK' button when you would like to exit.",
-        NAME, MB_OK | MB_ICONINFORMATION)) {
-
+        NAME, MB_OK | MB_ICONINFORMATION))
         exit(0);
-    }
 
 }
 
@@ -97,7 +82,6 @@ KeyPressRemover() {
         KeyHistoryMutex.unlock();
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-
 }
 
 void
@@ -124,6 +108,7 @@ KeyPressWriter() {
 }
 
 void exiting() {
+    delete[] KeyStates;
     std::ofstream APM_File;
     APM_File.open(PATH, std::ios::trunc);
     APM_File.close();
